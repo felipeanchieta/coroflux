@@ -1,18 +1,25 @@
 package io.github.felipeanchieta.coroflux
 
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.parallel.ResourceAccessMode
-import org.junit.jupiter.api.parallel.ResourceLock
-import org.junit.jupiter.api.parallel.Resources.SYSTEM_PROPERTIES
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.test.web.reactive.server.expectBodyList
+import java.util.*
 
-@SpringJUnitConfig(Application::class)
+@SpringBootTest
+@Execution(ExecutionMode.CONCURRENT)
 class HelloFluxTest {
 
     private lateinit var client: WebTestClient
+
+    @Autowired
+    private lateinit var blogPostRepository: BlogPostRepository
 
     @BeforeEach
     fun setUp(context: ApplicationContext) {
@@ -20,7 +27,6 @@ class HelloFluxTest {
     }
 
     @Test
-    @ResourceLock(value = SYSTEM_PROPERTIES, mode = ResourceAccessMode.READ)
     fun `should return hello world`() {
         client
             .get()
@@ -31,7 +37,6 @@ class HelloFluxTest {
     }
 
     @Test
-    @ResourceLock(value = SYSTEM_PROPERTIES, mode = ResourceAccessMode.READ)
     fun `should return hello with name`() {
         client
             .get()
@@ -39,5 +44,23 @@ class HelloFluxTest {
             .exchange()
             .expectStatus().isOk
             .expectBody(String::class.java).isEqualTo("Hello Felipe!")
+    }
+
+    @Test
+    fun `should return blog posts`() {
+        runBlocking {
+            blogPostRepository.save(BlogPost(
+                id = UUID.randomUUID(),
+                title = "title",
+                text = "text",
+            ))
+        }
+
+        client
+            .get()
+            .uri("/blogposts")
+            .exchange()
+            .expectStatus().isOk
+            .expectBodyList<BlogPost>()
     }
 }

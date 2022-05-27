@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-class MainController {
+class MainController(
+    private val blogPostRepository: BlogPostRepository,
+) {
     @GetMapping("/hello")
     suspend fun hello(
         @RequestParam(value = "name", defaultValue = "World") name: String
@@ -30,6 +32,10 @@ class MainController {
         delay(2500)
         emit("cruel world")
     }
+
+    @GetMapping("/blogposts")
+    suspend fun blogPosts(): Flow<BlogPost> =
+        blogPostRepository.findAll()
 
     private suspend fun getCompliment(): String {
         delay(1500)
